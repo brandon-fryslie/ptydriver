@@ -3,8 +3,8 @@ Tests for pattern matching (wait_for, contains).
 """
 
 import re
+
 import pytest
-from ptydriver import PtyProcess
 
 
 class TestPatternMatching:
@@ -26,7 +26,7 @@ class TestPatternMatching:
         """Raises TimeoutError correctly."""
         with pytest.raises(TimeoutError) as exc:
             bash_proc.wait_for("NON_EXISTENT_TEXT", timeout=0.2)
-        
+
         # Check that error message contains truncated content
         msg = str(exc.value)
         assert "NON_EXISTENT_TEXT" in msg

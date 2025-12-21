@@ -2,10 +2,12 @@
 Core functionality tests for PtyProcess.
 """
 
-import time
 import re
+import time
+
 import pytest
-from ptydriver import PtyProcess, Keys
+
+from ptydriver import Keys, PtyProcess
 
 
 class TestPtyProcessCore:
@@ -21,6 +23,7 @@ class TestPtyProcessCore:
     def test_custom_env(self):
         """Can pass custom environment variables."""
         import os
+
         env = os.environ.copy()
         env["MY_CUSTOM_VAR"] = "my_custom_value"
 
@@ -66,7 +69,7 @@ class TestPtyProcessCore:
         bash_proc.send("test")
         time.sleep(0.1)
         x2, y2 = bash_proc.get_cursor_position()
-        
+
         assert x2 != x1 or y2 != y1
 
     def test_resize(self, bash_proc):
@@ -74,12 +77,12 @@ class TestPtyProcessCore:
         # Check initial size (default 120x40 from init, but fixture might use default)
         assert bash_proc.width == 120
         assert bash_proc.height == 40
-        
+
         # Resize
         bash_proc.set_size(80, 24)
         assert bash_proc.width == 80
         assert bash_proc.height == 24
-        
+
         # Verify with tput that the process sees the change
         bash_proc.send("tput cols; tput lines")
         bash_proc.wait_for("80")
@@ -93,7 +96,7 @@ class TestPtyProcessCore:
         """
         # Create a large payload (simulating ~100KB of text)
         large_payload = "X" * 100000
-        
+
         with PtyProcess(["python3", "-c", f"print('{large_payload}')"], timeout=10) as proc:
             # We should be able to read the screen content while it's processing
             # without hanging forever.
@@ -105,7 +108,7 @@ class TestPtyProcessCore:
                     found = True
                     break
                 time.sleep(0.01)
-            
+
             assert found, "Failed to read content during massive output dump"
             # Eventually it should finish
             proc.wait_for("XXX", timeout=5)

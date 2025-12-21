@@ -2,9 +2,11 @@
 Pytest configuration for ptydriver tests.
 """
 
-import pytest
-import shutil
 import re
+import shutil
+
+import pytest
+
 from ptydriver import PtyProcess
 
 
@@ -21,7 +23,7 @@ def bash_proc():
     """
     # Check if bash is available, fallback to sh if not (e.g. some alpines)
     cmd = ["bash", "--norc"] if shutil.which("bash") else ["sh"]
-    
+
     with PtyProcess(cmd) as proc:
         # Wait for a prompt (simplified for sh/bash)
         # Bash usually ends in $ or #. Relaxed regex to match even if no trailing space.

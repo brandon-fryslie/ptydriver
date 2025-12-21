@@ -3,6 +3,7 @@ Tests for ProcessPool.
 """
 
 import re
+
 from ptydriver import ProcessPool
 
 
@@ -55,11 +56,11 @@ class TestProcessPool:
 
             p1.send("echo 'ONE'")
             p1.wait_for("ONE")
-            
+
             assert pool.any_contains("ONE")
             assert not pool.all_contain("ONE")
 
             p2.send("echo 'ONE'")
             p2.wait_for("ONE")
-            
+
             assert pool.all_contain("ONE")

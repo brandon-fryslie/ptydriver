@@ -2,27 +2,28 @@
 Tests for new expectation methods: expect_any, expect_sequence.
 """
 
-import pytest
 import re
-from ptydriver import PtyProcess, Keys
+
+import pytest
+
+from ptydriver import PtyProcess
+
 
 class TestExpectationMethods:
-
     def test_send_bytes(self, bash_proc):
         """Test sending raw bytes."""
         # Send Ctrl-D (EOF) as bytes
-        bash_proc.send_bytes(b'\x04')
+        bash_proc.send_bytes(b"\x04")
         # Bash should exit, or if in middle of input, cancel
         # We can't easily assert on process exit for bash_proc fixture
         # so let's try a simpler use case.
 
         with PtyProcess(["cat"]) as proc:
-            proc.send_bytes(b'hello\n')
+            proc.send_bytes(b"hello\n")
             proc.wait_for("hello")
-            proc.send_bytes(b'\x04') # EOF
+            proc.send_bytes(b"\x04")  # EOF
             # Cat should exit
             assert not proc.is_alive()
-
 
     def test_expect_any_string(self, python_proc):
         """Test expect_any with multiple string patterns."""
@@ -30,7 +31,7 @@ class TestExpectationMethods:
         python_proc.send("print('apple')")
         python_proc.send("time.sleep(0.1)")
         python_proc.send("print('banana')")
-        
+
         index, content = python_proc.expect_any(["banana", "cherry"])
         assert index == 0
         assert "banana" in content
@@ -42,7 +43,9 @@ class TestExpectationMethods:
         python_proc.send("time.sleep(0.1)")
         python_proc.send("print('Code: ABC')")
 
-        index, content = python_proc.expect_any([re.compile(r"Code: [A-Z]{3}"), re.compile(r"Error: \d+")])
+        index, content = python_proc.expect_any(
+            [re.compile(r"Code: [A-Z]{3}"), re.compile(r"Error: \d+")]
+        )
         assert index == 0
         assert "Code: ABC" in content
 
@@ -69,11 +72,13 @@ class TestExpectationMethods:
         python_proc.send("print('Processing data ID: 100')")
         python_proc.send("print('Task A finished')")
 
-        matches = python_proc.expect_sequence([
-            re.compile(r"Task A (started|completed)"),
-            re.compile(r"data ID: (\d+)"),
-            "Task A finished"
-        ])
+        matches = python_proc.expect_sequence(
+            [
+                re.compile(r"Task A (started|completed)"),
+                re.compile(r"data ID: (\d+)"),
+                "Task A finished",
+            ]
+        )
         assert len(matches) == 3
         assert "Task A started" in matches[0]
         assert "data ID: 100" in matches[1]
@@ -84,5 +89,6 @@ class TestExpectationMethods:
         python_proc.send("print('first step')")
 
         with pytest.raises(TimeoutError):
-            python_proc.expect_sequence(["first step", "second step that won't appear"], timeout=0.5)
-
+            python_proc.expect_sequence(
+                ["first step", "second step that won't appear"], timeout=0.5
+            )

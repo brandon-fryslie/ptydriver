@@ -19,8 +19,8 @@ Example:
         proc.send("What is 2+2?")
 """
 
-from .process import PtyProcess, ProcessPool
 from .keys import Keys, MacKeys, ReadlineKeys
+from .process import ProcessPool, PtyProcess
 
 __all__ = [
     "PtyProcess",
