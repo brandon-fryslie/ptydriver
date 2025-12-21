@@ -52,6 +52,8 @@ dev = [
     "mypy>=1.0.0",
     "build>=1.0.0",
     "twine>=4.0.0",
+    "commitizen>=3.0.0",
+    "pre-commit>=3.0.0",
 ]
 
 [project.urls]
@@ -94,4 +96,13 @@ ignore_missing_imports = true
 [dependency-groups]
 dev = [
     "pip-audit>=2.7.3",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.2.0"
+tag_format = "v$version"
+version_files = [
+    "pyproject.toml:^version",
+    "src/ptydriver/__init__.py:^__version__",
 ]
