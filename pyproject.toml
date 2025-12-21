@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ptydriver"
-version = "0.1.0"
+version = "0.2.0"
 description = "Programmatically drive interactive terminal applications via PTY"
 readme = "README.md"
 license = "MIT"
@@ -40,7 +40,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 dependencies = [
-    "pexpect>=4.8.0",
+    "ptyprocess>=0.7.0",
     "pyte>=0.8.0",
 ]
 
@@ -50,6 +50,7 @@ dev = [
     "pytest-timeout>=2.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
+    "build>=1.0.0",
 ]
 
 [project.urls]
@@ -70,6 +71,9 @@ include = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 timeout = 30
+filterwarnings = [
+    "ignore:This process .* is multi-threaded, use of forkpty\\(\\) may lead to deadlocks in the child.:DeprecationWarning:pty",
+]
 
 [tool.ruff]
 line-length = 100
@@ -84,3 +88,8 @@ python_version = "3.9"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "pip-audit>=2.7.3",
+]

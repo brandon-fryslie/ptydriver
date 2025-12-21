@@ -183,18 +183,23 @@ class Keys:
         Create a Ctrl key combination.
 
         Args:
-            key: The letter to combine with Ctrl (a-z or A-Z)
+            key: The character to combine with Ctrl.
+                 Can be a letter (a-z) or symbol ([, \\, ], etc.)
 
         Returns:
             The control character
 
         Example:
             Keys.ctrl('c')  # Ctrl+C -> '\\x03'
-            Keys.ctrl('r')  # Ctrl+R -> '\\x12'
+            Keys.ctrl('[')  # Ctrl+[ -> '\\x1b' (ESC)
         """
-        if len(key) != 1 or not key.isalpha():
-            raise ValueError("Key must be a single letter a-z")
-        return chr(ord(key.lower()) - ord('a') + 1)
+        if len(key) != 1:
+            raise ValueError("Key must be a single character")
+        
+        # Standard ASCII control character generation
+        # Takes the character code and masks bits 6 and 7 (0x1f = 00011111)
+        # This works for a-z, A-Z, [, \, ], ^, _, @
+        return chr(ord(key.upper()) & 0x1f)
 
     @staticmethod
     def alt(key: str) -> str:

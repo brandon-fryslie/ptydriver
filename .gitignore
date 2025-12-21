@@ -77,3 +77,5 @@ dmypy.json
 # OS
 .DS_Store
 Thumbs.db
+.beads/
+.agent_planning/

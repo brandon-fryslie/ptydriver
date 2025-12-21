@@ -105,13 +105,50 @@ PtyProcess(
 
 - `send(text, delay=0.15, press_enter=True)` - Send text to process
 - `send_raw(sequence, delay=0.15)` - Send raw escape sequences
+- `send_bytes(data, delay=0.15)` - Send raw bytes directly
 - `get_content()` - Get current screen content as string
 - `get_screen()` - Get screen as list of lines
 - `get_cursor_position()` - Get (x, y) cursor position
-- `wait_for(text, timeout=None)` - Wait for text to appear
-- `contains(text)` - Check if text is on screen
+- `set_size(width, height)` - Resize the terminal window
+- `wait_for(pattern, timeout=None)` - Wait for text or regex pattern to appear
+- `expect_any(patterns, timeout=None)` - Wait for any of the given patterns (returns index, match)
+- `expect_sequence(patterns, timeout=None)` - Wait for a sequence of patterns
+- `contains(pattern)` - Check if text or regex is on screen
 - `is_alive()` - Check if process is running
 - `cleanup()` - Clean up process (called automatically in context manager)
+
+### Advanced Usage
+
+#### Regex Support
+
+`wait_for` and `contains` support compiled regex patterns:
+
+```python
+import re
+from ptydriver import PtyProcess
+
+with PtyProcess(["bash"]) as proc:
+    # Wait for a prompt matching regex
+    proc.wait_for(re.compile(r"[\$#]"))
+```
+
+#### Multi-Pattern Expectations
+
+Wait for one of multiple possibilities or a specific sequence:
+
+```python
+# Expect any of the options
+index, match = proc.expect_any(["Success", "Error", re.compile(r"Code: \d+")])
+if index == 0:
+    print("Succeeded!")
+
+# Expect a sequence of events
+proc.expect_sequence([
+    "Initializing...",
+    re.compile(r"Loading data: \d+%"),
+    "Done"
+])
+```
 
 ### ProcessPool
 
@@ -167,7 +204,7 @@ Keys.repeat(Keys.DOWN, 5)  # Repeat key 5 times
 
 - Python 3.8+
 - macOS or Linux
-- pexpect
+- ptyprocess
 - pyte
 
 ## License

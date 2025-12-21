@@ -20,10 +20,13 @@ Example:
 """
 
 import time
-from threading import Lock, Thread
-from typing import Dict, List, Optional, Callable
+import re
+import os
+import select
+from threading import RLock, Thread, Condition
+from typing import Dict, List, Optional, Callable, Union, Pattern, Tuple
 
-import pexpect
+from ptyprocess import PtyProcess as PtyProcessNative
 import pyte
 
 
@@ -31,7 +34,7 @@ class PtyProcess:
     """
     Drives an interactive terminal application via PTY.
 
-    This class spawns CLI processes directly via pexpect and maintains a
+    This class spawns CLI processes directly via ptyprocess and maintains a
     virtual terminal screen using pyte. Designed for programmatic control
     of interactive applications like shells, REPLs, TUI apps, and AI agents.
 
@@ -83,24 +86,27 @@ class PtyProcess:
         self._is_cleaned_up = False
 
         # Initialize attributes that cleanup() depends on
-        self.process: Optional[pexpect.spawn] = None
+        self.process: Optional[PtyProcessNative] = None
         self._stop_thread = False
         self._update_thread: Optional[Thread] = None
 
         # Virtual terminal screen (using pyte)
         self.screen = pyte.Screen(width, height)
         self.stream = pyte.Stream(self.screen)
-        self.screen_lock = Lock()
+        
+        # Concurrency primitives
+        # RLock allows the same thread (main) to acquire lock recursively,
+        # which is needed if we call get_content() inside a with screen_updated block.
+        self.screen_lock = RLock()
+        self.screen_updated = Condition(self.screen_lock)
 
-        # Spawn process
-        self.process = pexpect.spawn(
-            command[0],
-            command[1:] if len(command) > 1 else [],
-            dimensions=(height, width),
-            env=env,
+        # Spawn process using ptyprocess
+        # ptyprocess.spawn takes list of arguments
+        self.process = PtyProcessNative.spawn(
+            command,
             cwd=cwd,
-            encoding='utf-8',
-            timeout=timeout
+            env=env,
+            dimensions=(height, width)
         )
 
         # Start background thread to update screen
@@ -118,27 +124,41 @@ class PtyProcess:
         """
         while not self._stop_thread:
             try:
-                # Read available output (non-blocking with timeout)
+                # Check if process is alive or has data
                 if self.process and self.process.isalive():
-                    # Read with very short timeout to avoid blocking
-                    try:
-                        data = self.process.read_nonblocking(size=4096, timeout=0.05)
-                        if data:
-                            # Feed to pyte screen (inside lock)
-                            with self.screen_lock:
-                                self.stream.feed(data)
-                    except pexpect.TIMEOUT:
-                        # No data available, continue loop
-                        pass
-                    except pexpect.EOF:
-                        # Process ended
-                        break
+                    # Use select to wait for data (non-blocking check)
+                    # We wait up to 0.05s
+                    r, _, _ = select.select([self.process.fd], [], [], 0.05)
+                    
+                    if r:
+                        try:
+                            # Read bytes directly
+                            data_bytes = self.process.read(4096)
+                            if data_bytes:
+                                # Decode bytes to string for pyte.Stream
+                                data_str = data_bytes.decode('utf-8', errors='ignore')
+                                # Feed to pyte screen in chunks to avoid holding lock too long
+                                chunk_size = 1024
+                                for i in range(0, len(data_str), chunk_size):
+                                    chunk = data_str[i:i + chunk_size]
+                                    with self.screen_lock:
+                                        self.stream.feed(chunk)
+                                        self.screen_updated.notify_all()
+                                    # Yield to allow readers to acquire lock
+                                    time.sleep(0)
+                        except EOFError:
+                            # Process ended
+                            break
+                        except OSError:
+                            # File descriptor issue
+                            break
                 else:
                     break
             except Exception:
                 # Process might be dead
                 break
-
+                
+            # If no data was read, sleep briefly to prevent tight loop
             time.sleep(0.01)
 
     def send(self, text: str, delay: float = 0.15, press_enter: bool = True):
@@ -154,16 +174,18 @@ class PtyProcess:
         if not self.process or not self.process.isalive():
             raise RuntimeError("Process not running")
 
-        self.process.send(text)
+        # ptyprocess.write takes bytes
+        self.process.write(text.encode('utf-8'))
         if press_enter:
-            self.process.send('\r')
+            self.process.write('\r'.encode('utf-8'))
         time.sleep(delay)
 
     def send_raw(self, sequence: str, delay: float = 0.15):
         """
-        Send raw byte sequences or escape codes to the process.
+        Send raw string sequences or escape codes to the process.
 
         Use this for special keys, control characters, and escape sequences.
+        The sequence string will be encoded to UTF-8 bytes before sending.
 
         Args:
             sequence: Raw string to send (can include escape sequences)
@@ -172,7 +194,24 @@ class PtyProcess:
         if not self.process or not self.process.isalive():
             raise RuntimeError("Process not running")
 
-        self.process.send(sequence)
+        self.process.write(sequence.encode('utf-8'))
+        time.sleep(delay)
+
+    def send_bytes(self, data: bytes, delay: float = 0.15):
+        """
+        Send raw bytes directly to the process.
+
+        This is useful for binary data or specific low-level control sequences
+        that are not suitable for string encoding.
+
+        Args:
+            data: Raw bytes to send
+            delay: Delay after sending for processing (seconds)
+        """
+        if not self.process or not self.process.isalive():
+            raise RuntimeError("Process not running")
+
+        self.process.write(data)
         time.sleep(delay)
 
     def get_content(self) -> str:
@@ -208,51 +247,190 @@ class PtyProcess:
         with self.screen_lock:
             return (self.screen.cursor.x, self.screen.cursor.y)
 
+    def set_size(self, width: int, height: int):
+        """
+        Resize the terminal window.
+
+        Args:
+            width: New width in columns
+            height: New height in rows
+        """
+        with self.screen_lock:
+            self.width = width
+            self.height = height
+            self.screen.resize(height, width)
+            if self.process and self.process.isalive():
+                self.process.setwinsize(height, width)
+
     def wait_for(
         self,
-        text: str,
+        pattern: Union[str, Pattern],
         timeout: Optional[float] = None,
     ) -> bool:
         """
-        Wait for text to appear in terminal content.
+        Wait for text or regex pattern to appear in terminal content.
 
         Args:
-            text: Text to wait for
+            pattern: Text string or compiled regex pattern to wait for
             timeout: Max seconds to wait (None = use default)
 
         Returns:
-            True if text appears within timeout
+            True if pattern matches within timeout
 
         Raises:
-            TimeoutError: If text doesn't appear within timeout
+            TimeoutError: If pattern doesn't match within timeout
         """
         timeout = timeout if timeout is not None else self.timeout
-        start = time.time()
+        end_time = time.time() + timeout
 
-        while time.time() - start < timeout:
-            content = self.get_content()
-            if text in content:
-                return True
-            time.sleep(0.1)
+        with self.screen_updated:
+            while True:
+                # Check content directly (we hold the lock)
+                lines = []
+                for line in self.screen.display:
+                    lines.append(line)
+                content = '\n'.join(lines)
+                
+                if isinstance(pattern, str):
+                    if pattern in content:
+                        return True
+                elif isinstance(pattern, re.Pattern):
+                    if pattern.search(content):
+                        return True
+                
+                remaining = end_time - time.time()
+                if remaining <= 0:
+                    # Truncate content for error message to prevent huge log spam
+                    display_content = content if len(content) < 1000 else content[:1000] + "\n... (truncated)"
+                    pattern_desc = pattern if isinstance(pattern, str) else pattern.pattern
+                    raise TimeoutError(
+                        f"Pattern '{pattern_desc}' did not match within {timeout}s.\n"
+                        f"Current content:\n{display_content}"
+                    )
+                
+                self.screen_updated.wait(remaining)
 
-        content = self.get_content()
-        raise TimeoutError(
-            f"Text '{text}' did not appear within {timeout}s.\n"
-            f"Current content:\n{content}"
-        )
-
-    def contains(self, text: str) -> bool:
+    def contains(self, pattern: Union[str, Pattern]) -> bool:
         """
-        Check if text is currently visible on screen.
+        Check if text or regex pattern is currently visible on screen.
 
         Args:
-            text: Text to search for
+            pattern: Text string or compiled regex pattern to search for
 
         Returns:
-            True if text is on screen, False otherwise
+            True if pattern is found on screen, False otherwise
         """
         content = self.get_content()
-        return text in content
+        if isinstance(pattern, str):
+            return pattern in content
+        elif isinstance(pattern, re.Pattern):
+            return bool(pattern.search(content))
+        return False
+    
+    def expect_any(
+        self,
+        patterns: List[Union[str, Pattern]],
+        timeout: Optional[float] = None,
+    ) -> Tuple[int, str]:
+        """
+        Wait for any of the provided patterns to appear in terminal content.
+
+        Args:
+            patterns: A list of string or compiled regex patterns to wait for.
+            timeout: Max seconds to wait (None = use default).
+
+        Returns:
+            A tuple (index, matched_string) where index is the 0-based index
+            of the first pattern that matched, and matched_string is the
+            content of the screen at the time of the match.
+
+        Raises:
+            TimeoutError: If none of the patterns appear within timeout.
+        """
+        timeout = timeout if timeout is not None else self.timeout
+        end_time = time.time() + timeout
+
+        with self.screen_updated:
+            while True:
+                content = '\n'.join(line for line in self.screen.display)
+                
+                for i, pattern in enumerate(patterns):
+                    if isinstance(pattern, str):
+                        if pattern in content:
+                            return (i, content)
+                    elif isinstance(pattern, re.Pattern):
+                        if pattern.search(content):
+                            return (i, content)
+                
+                remaining = end_time - time.time()
+                if remaining <= 0:
+                    pattern_descs = [p if isinstance(p, str) else p.pattern for p in patterns]
+                    display_content = content if len(content) < 1000 else content[:1000] + "\n... (truncated)"
+                    raise TimeoutError(
+                        f"None of patterns '{pattern_descs}' matched within {timeout}s.\n"
+                        f"Current content:\n{display_content}"
+                    )
+                
+                self.screen_updated.wait(remaining)
+
+    def expect_sequence(
+        self,
+        patterns: List[Union[str, Pattern]],
+        timeout: Optional[float] = None,
+    ) -> List[str]:
+        """
+        Wait for a sequence of patterns to appear in terminal content, one after another.
+
+        Each pattern must appear after the previous one.
+
+        Args:
+            patterns: A list of string or compiled regex patterns to wait for.
+            timeout: Max seconds to wait for each pattern (None = use default).
+
+        Returns:
+            A list of matched strings for each pattern in the sequence.
+
+        Raises:
+            TimeoutError: If any pattern in the sequence does not appear within timeout.
+        """
+        matched_contents: List[str] = []
+        current_timeout = timeout if timeout is not None else self.timeout
+
+        for i, pattern in enumerate(patterns):
+            end_time = time.time() + current_timeout
+            found_match = False
+            
+            with self.screen_updated:
+                while True:
+                    content = '\n'.join(line for line in self.screen.display)
+                    
+                    if isinstance(pattern, str):
+                        if pattern in content:
+                            matched_contents.append(content)
+                            found_match = True
+                            break
+                    elif isinstance(pattern, re.Pattern):
+                        if pattern.search(content):
+                            matched_contents.append(content)
+                            found_match = True
+                            break
+                    
+                    remaining = end_time - time.time()
+                    if remaining <= 0:
+                        pattern_desc = pattern if isinstance(pattern, str) else pattern.pattern
+                        display_content = content if len(content) < 1000 else content[:1000] + "\n... (truncated)"
+                        raise TimeoutError(
+                            f"Pattern '{pattern_desc}' (step {i+1} in sequence) did not match within {current_timeout}s.\n"
+                            f"Current content:\n{display_content}"
+                        )
+                    
+                    self.screen_updated.wait(remaining)
+            
+            if not found_match:
+                # This should ideally be caught by TimeoutError, but as a safeguard
+                raise RuntimeError(f"Unexpected error: Pattern '{pattern}' not found in sequence.")
+                
+        return matched_contents
 
     def is_alive(self) -> bool:
         """
@@ -296,7 +474,7 @@ class PtyProcess:
                 if self.process.isalive():
                     self.process.terminate(force=True)
                 self.process.close()
-            except (pexpect.ExceptionPexpect, OSError):
+            except (OSError, Exception):
                 pass
 
     def __enter__(self):
@@ -307,10 +485,6 @@ class PtyProcess:
         """Context manager exit - ensure cleanup."""
         self.cleanup()
         return False
-
-    def __del__(self):
-        """Destructor - ensure cleanup on garbage collection."""
-        self.cleanup()
 
 
 class ProcessPool:
@@ -427,6 +601,111 @@ class ProcessPool:
             True if any process contains the text
         """
         return any(proc.contains(text) for proc in self.processes.values())
+    
+    def expect_any(
+        self,
+        patterns: List[Union[str, Pattern]],
+        timeout: Optional[float] = None,
+    ) -> Tuple[int, str]:
+        """
+        Wait for any of the provided patterns to appear in terminal content.
+
+        Args:
+            patterns: A list of string or compiled regex patterns to wait for.
+            timeout: Max seconds to wait (None = use default).
+
+        Returns:
+            A tuple (index, matched_string) where index is the 0-based index
+            of the first pattern that matched, and matched_string is the
+            content of the screen at the time of the match.
+
+        Raises:
+            TimeoutError: If none of the patterns appear within timeout.
+        """
+        timeout = timeout if timeout is not None else self.timeout
+        end_time = time.time() + timeout
+
+        with self.screen_updated:
+            while True:
+                content = '\n'.join(line for line in self.screen.display)
+                
+                for i, pattern in enumerate(patterns):
+                    if isinstance(pattern, str):
+                        if pattern in content:
+                            return (i, content)
+                    elif isinstance(pattern, re.Pattern):
+                        if pattern.search(content):
+                            return (i, content)
+                
+                remaining = end_time - time.time()
+                if remaining <= 0:
+                    pattern_descs = [p if isinstance(p, str) else p.pattern for p in patterns]
+                    display_content = content if len(content) < 1000 else content[:1000] + "\n... (truncated)"
+                    raise TimeoutError(
+                        f"None of patterns '{pattern_descs}' matched within {timeout}s.\n"
+                        f"Current content:\n{display_content}"
+                    )
+                
+                self.screen_updated.wait(remaining)
+
+    def expect_sequence(
+        self,
+        patterns: List[Union[str, Pattern]],
+        timeout: Optional[float] = None,
+    ) -> List[str]:
+        """
+        Wait for a sequence of patterns to appear in terminal content, one after another.
+
+        Each pattern must appear after the previous one.
+
+        Args:
+            patterns: A list of string or compiled regex patterns to wait for.
+            timeout: Max seconds to wait for each pattern (None = use default).
+
+        Returns:
+            A list of matched strings for each pattern in the sequence.
+
+        Raises:
+            TimeoutError: If any pattern in the sequence does not appear within timeout.
+        """
+        matched_contents: List[str] = []
+        current_timeout = timeout if timeout is not None else self.timeout
+
+        for i, pattern in enumerate(patterns):
+            end_time = time.time() + current_timeout
+            found_match = False
+            
+            with self.screen_updated:
+                while True:
+                    content = '\n'.join(line for line in self.screen.display)
+                    
+                    if isinstance(pattern, str):
+                        if pattern in content:
+                            matched_contents.append(content)
+                            found_match = True
+                            break
+                    elif isinstance(pattern, re.Pattern):
+                        if pattern.search(content):
+                            matched_contents.append(content)
+                            found_match = True
+                            break
+                    
+                    remaining = end_time - time.time()
+                    if remaining <= 0:
+                        pattern_desc = pattern if isinstance(pattern, str) else pattern.pattern
+                        display_content = content if len(content) < 1000 else content[:1000] + "\n... (truncated)"
+                        raise TimeoutError(
+                            f"Pattern '{pattern_desc}' (step {i+1} in sequence) did not match within {current_timeout}s.\n"
+                            f"Current content:\n{display_content}"
+                        )
+                    
+                    self.screen_updated.wait(remaining)
+            
+            if not found_match:
+                # This should ideally be caught by TimeoutError, but as a safeguard
+                raise RuntimeError(f"Unexpected error: Pattern '{pattern}' not found in sequence.")
+                
+        return matched_contents
 
     def cleanup(self):
         """Clean up all processes in the pool."""
