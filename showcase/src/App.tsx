@@ -47,7 +47,7 @@ export function App() {
         <WebVMTerminal
           diskImage={{
             url: PTYDRIVER_DISK_IMAGE_URL,
-            type: 'cloud',
+            type: 'bytes',
             label: 'Debian + ptydriver',
           }}
           bootCommand="/bin/bash"
