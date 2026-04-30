@@ -27,9 +27,13 @@ WORKDIR /home/user
 
 # Install ptydriver into an isolated venv so system Python stays clean and
 # the visitor can `which python3` to see the venv shim.
+#
+# --ignore-requires-python: buster ships Python 3.7; ptydriver's metadata
+# says >=3.8 but the actual code is pure-Python and runs on 3.7 cleanly.
+# Using buster is forced by CheerpX's syscall surface (see Dockerfile.base).
 RUN python3 -m venv /home/user/.venv && \
-    /home/user/.venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /home/user/.venv/bin/pip install --no-cache-dir ptydriver
+    /home/user/.venv/bin/pip install --no-cache-dir --upgrade 'pip<24' && \
+    /home/user/.venv/bin/pip install --no-cache-dir --ignore-requires-python ptydriver
 ENV PATH=/home/user/.venv/bin:$PATH
 ENV VIRTUAL_ENV=/home/user/.venv
 
