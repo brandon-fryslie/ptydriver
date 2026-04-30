@@ -1,10 +1,12 @@
 import { Header, WebVMTerminal, MetadataFooter, CodeBlock } from 'showcase-kit';
 
 // [LAW:one-source-of-truth] Disk image URL is the single canonical reference
-// to where the project's WebVM rootfs lives. Update this in lockstep with the
-// upload-image.sh tag.
+// to where the project's WebVM rootfs lives. The image itself lives on a
+// GitHub Release; the webvm.tinkerpad.ai Cloudflare Worker re-fronts it with
+// the CORS+CORP headers required in a cross-origin-isolated page.
+// Update this in lockstep with the upload-image.sh tag.
 const PTYDRIVER_DISK_IMAGE_URL =
-  'https://github.com/brandon-fryslie/ptydriver/releases/download/webvm-image-v1/ptydriver.ext2';
+  'https://webvm.tinkerpad.ai/brandon-fryslie/ptydriver/releases/download/webvm-image-v1/ptydriver.ext2';
 
 export function App() {
   return (
