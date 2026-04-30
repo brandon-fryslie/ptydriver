@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ptydriver — drive interactive TUIs from Python, in your browser</title>
+    <meta name="description" content="ptydriver lets you control any interactive CLI through a PTY. This page boots a real Linux userland with ptydriver installed so you can run the demo scripts yourself." />
+    <!-- Cross-origin isolation for SharedArrayBuffer (CheerpX requirement).
+         Must load before any module scripts. -->
+    <script src="coi-serviceworker.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

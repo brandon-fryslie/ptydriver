@@ -1,0 +1,47 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--sk-bg);
+  color: var(--sk-fg);
+  font-family: var(--sk-ff-sans);
+}
+body { min-height: 100vh; }
+
+.pd-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--sk-sp-5);
+}
+.pd-stage {
+  margin: var(--sk-sp-6) 0;
+}
+.pd-howitworks {
+  padding: var(--sk-sp-7) 0;
+}
+.pd-howitworks h2 {
+  margin: 0 0 var(--sk-sp-4);
+  font-size: var(--sk-fs-h1);
+  letter-spacing: -0.01em;
+  color: var(--sk-fg-strong);
+}
+.pd-howitworks p {
+  margin: 0 0 var(--sk-sp-4);
+  font-size: var(--sk-fs-tagline);
+  line-height: 1.65;
+  max-width: 72ch;
+  color: var(--sk-fg);
+}
+.pd-howitworks code {
+  font-family: var(--sk-ff-mono);
+  background: var(--sk-bg-elev-2);
+  border: 1px solid var(--sk-border);
+  border-radius: var(--sk-radius-sm);
+  padding: 1px 4px;
+  font-size: 0.9em;
+}
+.pd-howitworks h3 {
+  margin: var(--sk-sp-5) 0 var(--sk-sp-3);
+  font-size: var(--sk-fs-h2);
+  color: var(--sk-fg-strong);
+}
