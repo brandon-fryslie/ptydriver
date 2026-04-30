@@ -1,0 +1,52 @@
+name: Deploy Showcase
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute version slot
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "slot=pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "slot=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install showcase dependencies
+        working-directory: showcase
+        run: npm ci
+
+      - name: Build showcase with versioned base URL
+        working-directory: showcase
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/${{ steps.version.outputs.slot }}/
+        run: npm run build
+
+      - uses: brandon-fryslie/gh-pages-multiplexer@v1
+        with:
+          source-dir: showcase/dist
+          version: ${{ steps.version.outputs.slot }}
+          base-path-mode: none
