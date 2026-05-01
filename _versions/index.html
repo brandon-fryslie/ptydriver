@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>brandon-fryslie/ptydriver — Deployed Versions</title>
+<style>:root { --bg: #ffffff; --bg-card: #fafafa; --fg: #1f2328; --fg-muted: #656d76; --border: #d0d7de; --accent: #0969da; --accent-hover: #0550ae; }
+body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 15px; line-height: 1.5; margin: 0; }
+main { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+h1 { font-size: 28px; font-weight: 600; line-height: 1.25; margin: 0 0 4px; }
+h2 { font-size: 20px; font-weight: 600; line-height: 1.25; margin: 0; }
+.subtitle { color: var(--fg-muted); margin: 0 0 24px; }
+.versions { display: flex; flex-direction: column; gap: 16px; }
+.version { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; }
+.version-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.timestamp { color: var(--fg-muted); font-size: 13px; }
+.meta { color: var(--fg-muted); font-size: 13px; margin: 8px 0 0; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+details { margin-top: 12px; }
+summary { cursor: pointer; color: var(--fg-muted); font-size: 13px; }
+.commits { list-style: none; padding: 12px 0 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.commits li { font-size: 13px; }
+footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--fg-muted); font-size: 13px; }
+.empty { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; text-align: center; color: var(--fg-muted); }
+.release { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--accent); background: rgba(9, 105, 218, 0.06); border-radius: 0 6px 6px 0; }
+.release-link { font-weight: 600; font-size: 14px; }
+.release-body { margin: 6px 0 0; font-size: 13px; color: var(--fg-muted); }
+.prerelease { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: #fff3c4; color: #7a5d00; margin-left: 6px; font-weight: 500; }
+@media (prefers-color-scheme: dark) { .release { background: rgba(47, 129, 247, 0.08); } .prerelease { background: #3a2f00; color: #ffda6a; } }
+@media (prefers-color-scheme: dark) { :root { --bg: #0d1117; --bg-card: #161b22; --fg: #e6edf3; --fg-muted: #8d96a0; --border: #30363d; --accent: #2f81f7; --accent-hover: #539bf5; } }
+@media (max-width: 600px) { main { padding: 16px 12px; } h1 { font-size: 22px; } h2 { font-size: 18px; } .version { padding: 16px 16px; } .version-head { flex-direction: column; align-items: flex-start; gap: 4px; } }</style>
+</head>
+<body>
+<main>
+<header>
+<h1><a href="https://github.com/brandon-fryslie/ptydriver" title="View on GitHub">brandon-fryslie/ptydriver</a></h1>
+<p class="subtitle">1 version deployed</p>
+</header>
+<section class="versions"><article class="version"><div class="version-head"><h2>master</h2><time class="timestamp" datetime="2026-05-01T00:12:34.026Z">2026-05-01 00:12 UTC</time></div><p class="meta"><span class="mono">refs/heads/master</span><span>·</span><a class="mono" href="https://github.com/brandon-fryslie/ptydriver/commit/9687d7626d96fe388b360ff608eb04ecc9133cd4">9687d76</a><span>·</span><a href="../master/">View →</a></p><details><summary>10 commits</summary><ul class="commits"><li><span class="mono">9687d76</span> feat(showcase): self-heal stale COI service workers across versions <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">1e25328</span> ci(showcase): add gh-pages-multiplexer for versioned deploys <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">10bdf51</span> fix(showcase): use HttpBytesDevice for flat ext2 <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">588ce98</span> fix(showcase): allow ptydriver install on buster&#39;s Python 3.7 <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">48e7998</span> feat(showcase): point disk image at webvm.tinkerpad.ai CORS proxy <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">b04cbd3</span> feat: add gh-pages showcase with real Linux + ptydriver in browser <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">dde7bdf</span> chore: add commitizen and pre-commit for conventional commits <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">9be5c67</span> feat: add changelog generation and improve code quality <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">4c4d476</span> Add justfile with build, test, clean, release, and lint recipes <span class="muted">— Brandon Fryslie</span></li><li><span class="mono">82d4ddd</span> Initial commit <span class="muted">— Brandon Fryslie</span></li></ul></details></article></section>
+<footer>Generated by gh-pages-multiplexer · 2026-05-01T00:12:34.026Z</footer>
+</main>
+</body>
+</html>

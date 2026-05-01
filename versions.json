@@ -1,0 +1,83 @@
+{
+  "schema": 2,
+  "versions": [
+    {
+      "version": "master",
+      "ref": "refs/heads/master",
+      "sha": "9687d7626d96fe388b360ff608eb04ecc9133cd4",
+      "timestamp": "2026-05-01T00:12:34.026Z",
+      "commits": [
+        {
+          "sha": "9687d7626d96fe388b360ff608eb04ecc9133cd4",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2026-04-30T18:11:47-06:00",
+          "message": "feat(showcase): self-heal stale COI service workers across versions\n\nMulti-version gh-pages deploys can leave a coi-serviceworker.js registered for\na sibling version subdir, blocking the current page from going cross-origin-\nisolated. Bump showcase-kit to ba4b197 (which adds bootstrapCoi) and call it\nin main.tsx before mount so the unregister-and-reload happens before any\nCheerpX-touching component reads SharedArrayBuffer.\n"
+        },
+        {
+          "sha": "1e25328fb0db84b63ef20586c9ea5529a71d0b5a",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2026-04-30T17:27:53-06:00",
+          "message": "ci(showcase): add gh-pages-multiplexer for versioned deploys\n"
+        },
+        {
+          "sha": "10bdf51c7b475643bde4f358af666cb494a8fccf",
+          "author_name": "Brandon Fryslie",
+          "author_email": "brandroid@vast.wang",
+          "timestamp": "2026-04-30T12:35:46-06:00",
+          "message": "fix(showcase): use HttpBytesDevice for flat ext2\n\nCloudDevice.create() expects CheerpX's chunked CDN protocol (the format\ndisks.webvm.io serves). Our self-hosted ext2 is a flat file behind plain\nHTTP range requests, which is what HttpBytesDevice handles. Wrong device\ntype was the entire reason mounts hung — image content was always fine.\n\nGenerated with [Claude Code](https://claude.ai/code)\nvia [Happy](https://happy.engineering)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nCo-Authored-By: Happy <yesreply@happy.engineering>\n"
+        },
+        {
+          "sha": "588ce98cfce4061b27e14a4b1cbaa42aa8c21d21",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2026-04-30T10:41:27-06:00",
+          "message": "fix(showcase): allow ptydriver install on buster's Python 3.7\n\nCheerpX boots only on Debian buster (glibc 2.28). ptydriver metadata\ndeclares >=3.8 but the code is pure-Python and runs on 3.7 cleanly, so\npip --ignore-requires-python and pin pip<24 (24+ enforces metadata).\n\nGenerated with [Claude Code](https://claude.ai/code)\nvia [Happy](https://happy.engineering)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nCo-Authored-By: Happy <yesreply@happy.engineering>\n"
+        },
+        {
+          "sha": "48e7998d6c330a4225470dd677a276a2de41ea75",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2026-04-30T02:30:50-06:00",
+          "message": "feat(showcase): point disk image at webvm.tinkerpad.ai CORS proxy\n\nGitHub Releases redirects to release-assets.githubusercontent.com which\nreturns no Cross-Origin-Resource-Policy header. In a coi-isolated context\nthe browser blocks any cross-origin response without CORP — including the\nservice worker's own upstream fetch. The webvm.tinkerpad.ai Cloudflare\nWorker (in showcase-kit/webvm/cf-worker) sits in front of the Release and\nadds the headers CheerpX needs.\n\nGenerated with [Claude Code](https://claude.ai/code)\nvia [Happy](https://happy.engineering)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nCo-Authored-By: Happy <yesreply@happy.engineering>\n"
+        },
+        {
+          "sha": "b04cbd3314c968a6c8ea98fc1220226737bfc1e2",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2026-04-30T02:10:03-06:00",
+          "message": "feat: add gh-pages showcase with real Linux + ptydriver in browser\n\nVite app deployed to gh-pages that boots a Debian rootfs via CheerpX,\npreinstalls ptydriver into a venv, and exposes three demo scripts driving\nvim, fzf, and a Python REPL through a real PTY. Visitors can run the demos,\nread the source, and drop into an interactive python3 to try the API\ndirectly — same canonical ptydriver code, no JS port.\n\nComposes from showcase-kit's <WebVMTerminal>; image is built by\nshowcase-kit/webvm/build-image.sh and published as a Release on this repo.\n\nGenerated with [Claude Code](https://claude.ai/code)\nvia [Happy](https://happy.engineering)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nCo-Authored-By: Happy <yesreply@happy.engineering>\n"
+        },
+        {
+          "sha": "dde7bdfecf8c83e7318ab8acfde034091ea2fd73",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2025-12-20T22:33:00-07:00",
+          "message": "chore: add commitizen and pre-commit for conventional commits\n\n- Add commitizen for interactive commit message generation\n- Add pre-commit with commit-msg hook to enforce conventional commits\n- Configure commitizen in pyproject.toml with version tracking\n"
+        },
+        {
+          "sha": "9be5c67193fa93f276be3575538cf19224ff4f6c",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2025-12-20T22:32:39-07:00",
+          "message": "feat: add changelog generation and improve code quality\n\n- Add CHANGELOG.md with release history\n- Add cliff.toml for git-cliff changelog generation\n- Update justfile with changelog recipes and fix release command\n- Add twine and strict mypy to dev dependencies\n- Add py.typed marker for PEP 561 compliance\n- Fix type annotations and code style throughout\n- Remove broken ProcessPool.expect_any/expect_sequence methods\n"
+        },
+        {
+          "sha": "4c4d476a6f03324d71ee42303ec200965227c33e",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2025-12-20T19:13:02-07:00",
+          "message": "Add justfile with build, test, clean, release, and lint recipes\n"
+        },
+        {
+          "sha": "82d4dddb10269e8aa57e8dcfd0210d762a7bc349",
+          "author_name": "Brandon Fryslie",
+          "author_email": "530235+brandon-fryslie@users.noreply.github.com",
+          "timestamp": "2025-12-20T17:06:49-07:00",
+          "message": "Initial commit\n"
+        }
+      ]
+    }
+  ]
+}
